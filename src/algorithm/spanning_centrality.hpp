@@ -75,262 +75,184 @@ namespace spanning_centrality {
       assert(res[0] == root);
       return res;
     }
-
-    class SpanningCentrality {
-    private:
-      std::vector<double> edge_centrality;
-      std::vector<double> vertex_centrality;
-      std::vector<double> aggregated_centrality;
-      std::mt19937  mt;
-
-    public:
-
-      SpanningCentrality() {
-        std::random_device rd;
-        this->mt = std::mt19937(rd());
-      }
-      
-      inline double GetEdgeCentrality(size_t edge_id) const {
-        return edge_centrality.at(edge_id);
-      }
-      
-      inline double GetVertexCentrality(size_t vertex_id) const {
-        return vertex_centrality.at(vertex_id);
-      }
-
-      inline double GetAggregatedCentrality(size_t vertex_id) const {
-        return aggregated_centrality.at(vertex_id);
-      }
-
-      inline size_t GetNumVertices() const {
-        return vertex_centrality.size();
-      }
-
-      bool Construct(const std::string &graph_file, int num_samples) {
-        std::vector<std::pair<int, int> > es;
-        if (ReadGraph(graph_file, es)) {
-          ConvertToUndirectedGraph(es);
-          return Construct(es, num_samples);
-        } else {
-          return false;
-        }
-      }
-
-      bool Construct(const std::vector<std::pair<int, int> > &es, int num_samples) {
-        
-        int V = 0;
-        for (const auto &e : es){
-          assert(e.fst != e.snd);
-          V = std::max({V, e.fst + 1, e.snd + 1});
-        }
-        
-        this->edge_centrality = std::vector<double>(es.size());
-        this->vertex_centrality = std::vector<double>(V);
-        this->aggregated_centrality = std::vector<double>(V);
-        
-        std::vector<double> centrality(V);
-        std::vector<std::vector<int> > edge_groups =
-          ArticulationPointDecomposition(es).edge_groups;
-        
-        // process each bi-connected component one by one
-        for (const auto &edge_group : edge_groups) {
-          if (edge_group.empty()) continue;
-
-          // build a subgraph from an edge group and shuffle vertices on distances.
-          std::vector<Edge> ccomp_es;
-          for (int edge_id : edge_group){
-            ccomp_es.emplace_back(es[edge_id].fst, es[edge_id].snd, edge_id);
-          }
-          std::vector<std::vector<PI> > g(BuildCompressedGraph(ccomp_es));
-          std::vector<int>  order = DistanceOrdering(g);
-          
-
-          // 簡単のため全体の頂点数分の領域を確保している.二重連結成分が多いと効率が悪くなる.
-          std::vector<bool> visit(V, false);
-          std::vector<int>  next_edges(V, -1);
-    
-          for (int trial = 0; trial < num_samples; trial++) {
-            fill(visit.begin(), visit.end(), false);
-            SampleSpanningTree(next_edges, visit, g, order);
-            
-            for (size_t s = 1; s < g.size(); s++) {
-              int v = order[s];
-              int e = ccomp_es[g[v][next_edges[v]].snd].edge_id;
-              
-              
-              aggregated_centrality[es[e].fst] += 1.0 / num_samples;
-              aggregated_centrality[es[e].snd] += 1.0 / num_samples;
-            }
-          }
-        }
-        return true;
-      }
-
-    private:
-      void SampleSpanningTree(std::vector<int > &next_edges,
-                              std::vector<bool> &visit,
-                              const std::vector<std::vector<PI> > &g,
-                              const std::vector<int> &order)
-      {
-        visit[order[0]] = true;
-        
-        for (size_t s = 1; s < g.size(); s++) {
-          if (visit[order[s]]) continue;
-          
-          int u = order[s];
-          while (!visit[u]){
-            int next = mt() % g[u].size();
-            next_edges[u] = next;
-            u = g[u][next].fst;
-          }
-        
-          u = order[s];
-          while (!visit[u]){
-            visit[u] = true;
-            u = g[u][next_edges[u]].fst;
-          }
-        }
-      }
-    };
   }
 
   
-  void SampleSpanningTree(std::vector<int > &next_edges,
-                            std::vector<bool> &visit,
-                            const std::vector<std::vector<PI> > &g,
-                            const std::vector<int> &order,
-                            std::mt19937 &mt){
-    visit[order[0]] = true;
-        
-    for (size_t s = 1; s < g.size(); s++) {
-      if (visit[order[s]]) continue;
-          
-      int u = order[s];
-      while (!visit[u]){
-        int next = mt() % g[u].size();
-        next_edges[u] = next;
-        u = g[u][next].fst;
-      }
-        
-      u = order[s];
-      while (!visit[u]){
-        visit[u] = true;
-        u = g[u][next_edges[u]].fst;
+  class SpanningCentrality {
+  private:
+    std::vector<double> edge_centrality;
+    std::vector<double> vertex_centrality;
+    std::vector<double> aggregated_centrality;
+    std::vector<std::pair<int, int> > original_edges;
+    std::mt19937  mt;
+
+  public:
+
+    SpanningCentrality() {
+      std::random_device rd;
+      this->mt = std::mt19937(rd());
+    }
+      
+    inline double GetEdgeCentrality(size_t edge_id) const {
+      return edge_centrality.at(edge_id);
+    }
+      
+    inline double GetVertexCentrality(size_t vertex_id) const {
+      return vertex_centrality.at(vertex_id);
+    }
+
+    inline double GetAggregatedCentrality(size_t vertex_id) const {
+      return aggregated_centrality.at(vertex_id);
+    }
+
+    inline size_t GetNumVertices() const {
+      return vertex_centrality.size();
+    }
+
+    inline size_t GetNumEdges() const {
+      return edge_centrality.size();
+    }
+
+    inline std::pair<int, int> GetEdge(size_t edge_id) const {
+      return original_edges.at(edge_id);
+    }
+
+    bool Construct(const std::string &graph_file, int num_samples) {
+      std::vector<std::pair<int, int> > es;
+      if (ReadGraph(graph_file, es)) {
+        ConvertToUndirectedGraph(es);
+        return Construct(es, num_samples);
+      } else {
+        return false;
       }
     }
-  }
-    
-    
-  void EstimateEdgeCentrality_(std::vector<Edge> &es, int num_samples, std::mt19937 &mt){
-    if (es.empty()) return;
+
+    bool Construct(const std::vector<std::pair<int, int> > &es, int num_samples) {
+      this->original_edges = es;
       
-    std::vector<std::vector<PI> > g(BuildCompressedGraph(es));
-        
-    size_t V = g.size();
-    std::vector<int>  order = DistanceOrdering(g);
-    std::vector<bool> visit(V, false);
-    std::vector<int>  next_edges(V, -1);
-
-    for (int trial = 0; trial < num_samples; trial++) {
-      fill(visit.begin(), visit.end(), false);
-      SampleSpanningTree(next_edges, visit, g, order, mt);
-      for (size_t s = 1; s < V; s++) {
-        int v = order[s];
-        es[g[v][next_edges[v]].snd].centrality += 1.0 / num_samples;
+      int V = 0;
+      for (const auto &e : es){
+        assert(e.fst != e.snd);
+        V = std::max({V, e.fst + 1, e.snd + 1});
       }
-    }
-  }
-  
-  
-  std::vector<double> EstimateEdgeCentrality(const std::vector<PI> &es, int num_samples){
-    std::random_device rd;
-    std::mt19937 mt(rd());
+        
+      this->edge_centrality = std::vector<double>(es.size());
+      this->vertex_centrality = std::vector<double>(V);
+      this->aggregated_centrality = std::vector<double>(V);
 
-    
-    std::vector<double> centrality(es.size(), 0);
-    const std::vector<std::vector<int> > edge_groups = ArticulationPointDecomposition(es).edge_groups;
-    
-    for (const auto &edge_group : edge_groups) {
-      if (edge_group.size() > 1){
+      const ArticulationPointDecomposition decomposition = ArticulationPointDecomposition(es);
+      const std::vector<std::vector<int> > edge_groups = decomposition.edge_groups;
+      const std::vector<int> articulation_points = decomposition.articulation_points;
+      
+      // process each bi-connected component one by one
+      for (const auto &edge_group : edge_groups) {
+        if (edge_group.empty()) continue;
+
+        // build a subgraph from an edge group and shuffle vertices on distances.
         std::vector<Edge> ccomp_es;
         for (int edge_id : edge_group){
           ccomp_es.emplace_back(es[edge_id].fst, es[edge_id].snd, edge_id);
         }
+        std::vector<std::vector<PI> > g(BuildCompressedGraph(ccomp_es));
+        std::vector<int>  order = DistanceOrdering(g);
+        
 
-        EstimateEdgeCentrality_(ccomp_es, num_samples, mt);
-        for (const Edge &e : ccomp_es){
-          centrality[e.edge_id] = e.centrality;
+        // 簡単のため全体の頂点数分の領域を確保している.二重連結成分が多いと効率が悪くなる.
+        std::vector<bool> visit(V, false);
+        std::vector<int>  next_edges(V, -1);
+        std::vector<int>  degree(V);
+    
+        for (int trial = 0; trial < num_samples; trial++) {
+          fill(visit.begin(), visit.end(), false);
+          fill(degree.begin(), degree.end(), 0);
+          
+          SampleSpanningTree(next_edges, visit, g, order);
+            
+          for (size_t s = 1; s < g.size(); s++) {
+            int v = order[s];
+            int e = ccomp_es[g[v][next_edges[v]].snd].edge_id;
+
+            this->edge_centrality[e]+= 1.0 / num_samples;
+
+            if (++degree[es[e].fst] == 2){
+              this->vertex_centrality[es[e].fst] += 1.0 / num_samples;
+            }
+            if (++degree[es[e].snd] == 2){
+              this->vertex_centrality[es[e].snd] += 1.0 / num_samples;
+            }
+            
+            this->aggregated_centrality[es[e].fst] += 1.0 / num_samples;
+            this->aggregated_centrality[es[e].snd] += 1.0 / num_samples;
+          }
         }
-      } else if (!edge_group.empty()){
-        centrality[edge_group[0]] = 1.0;
       }
+
+      for (int v : articulation_points) {
+        vertex_centrality[v] = 1.0;
+      }
+
+      for (int v = 0; v < V; v++) {
+        assert(vertex_centrality[v] < 1 + 1e-9);
+      }
+      return true;
+    }
+
+  private:
+    void SampleSpanningTree(std::vector<int > &next_edges,
+                            std::vector<bool> &visit,
+                            const std::vector<std::vector<PI> > &g,
+                            const std::vector<int> &order)
+    {
+      visit[order[0]] = true;
+        
+      for (size_t s = 1; s < g.size(); s++) {
+        if (visit[order[s]]) continue;
+          
+        int u = order[s];
+        while (!visit[u]){
+          int next = mt() % g[u].size();
+          next_edges[u] = next;
+          u = g[u][next].fst;
+        }
+        
+        u = order[s];
+        while (!visit[u]){
+          visit[u] = true;
+          u = g[u][next_edges[u]].fst;
+        }
+      }
+    }
+  };
+  
+  
+  
+  std::vector<double> EstimateEdgeCentrality(const std::vector<PI> &es, int num_samples){
+    SpanningCentrality spanning_centrality;
+    spanning_centrality.Construct(es, num_samples);
+
+    size_t E = spanning_centrality.GetNumEdges();
+    std::vector<double> centrality(E);
+    for (size_t e = 0; e < E; e++) {
+      centrality[e] = spanning_centrality.GetEdgeCentrality(e);
     }
     return centrality;
   }
   
   
   std::vector<double> EstimateVertexCentrality(const std::vector<PI> &es, int num_samples){
-    std::random_device rd;
-    std::mt19937 mt(rd());
-    
-    int V = 0;
-    for (const auto &e : es){
-      assert(e.fst != e.snd);
-      V = std::max({V, e.fst + 1, e.snd + 1});
-    }
+    SpanningCentrality spanning_centrality;
+    spanning_centrality.Construct(es, num_samples);
 
-    ArticulationPointDecomposition decomp(es);
+    size_t V = spanning_centrality.GetNumVertices();
     std::vector<double> centrality(V);
-    std::vector<std::vector<int> > edge_groups = decomp.edge_groups;
-    std::vector<int> articulation_points = decomp.articulation_points;
-    
-    for (const auto &edge_group: edge_groups) {
-      if (edge_group.empty()) continue;
-      
-      std::vector<Edge> ccomp_es;
-      for (int edge_id : edge_group){
-        ccomp_es.emplace_back(es[edge_id].fst, es[edge_id].snd, edge_id);
-      }
-      
-      std::vector<std::vector<PI> > g(BuildCompressedGraph(ccomp_es));
-      std::vector<int>  order = DistanceOrdering(g);
-      // 簡単のため全体の頂点数分の領域を確保している.二重連結成分が多いと効率が悪くなる.
-      std::vector<bool> visit(V, false);
-      std::vector<int>  next_edges(V, -1);
-      std::vector<int>  degree(V);
-
-      for (int trial = 0; trial < num_samples; trial++) {
-        fill(visit.begin(), visit.end(), false);
-        fill(degree.begin(), degree.end(), 0);
-        SampleSpanningTree(next_edges, visit, g, order, mt);
-      
-        for (size_t s = 1; s < g.size(); s++) {
-          int v = order[s];
-          int e = ccomp_es[g[v][next_edges[v]].snd].edge_id;
-          
-          if (++degree[es[e].fst] == 2){
-            centrality[es[e].fst] += 1.0 / num_samples;
-          }
-
-          if (++degree[es[e].snd] == 2){
-            centrality[es[e].snd] += 1.0 / num_samples;
-          }
-        }
-      }
-    }
-
-    for (int v : articulation_points) {
-      centrality[v] = 1.0;
-    }
-
-    for (int v = 0; v < V; v++) {
-      assert(centrality[v] < 1 + 1e-9);
+    for (size_t v = 0; v < V; v++) {
+      centrality[v] = spanning_centrality.GetVertexCentrality(v);
     }
     return centrality;
   }
   
 
-  std::vector<double> EstimateVertexAggregatedCentrality(const std::vector<PI> &es, int num_samples){
+  std::vector<double> EstimateAggregatedCentrality(const std::vector<PI> &es, int num_samples){
     SpanningCentrality spanning_centrality;
     spanning_centrality.Construct(es, num_samples);
 
@@ -342,6 +264,5 @@ namespace spanning_centrality {
     return centrality;
   }
 }
-
 
 #endif /* SPANNING_CENTRALITY_H */

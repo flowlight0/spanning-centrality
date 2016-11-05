@@ -5,23 +5,21 @@
 #include <map>
 using namespace std;
 DEFINE_string(graph_file, "-", "Input graph file.");
-DEFINE_int32(num_samples, 1000, "");
+DEFINE_int32(num_samples, 10000, "");
 
 int main(int argc, char *argv[])
 {
   google::ParseCommandLineFlags(&argc, &argv, true);
-  vector<PI> es;
-  ReadGraph(FLAGS_graph_file, es);
-  vector<double> sc = spanning_centrality::EstimateEdgeCentrality(es, FLAGS_num_samples);
-  
-  map<pair<int, int> , double> centrality_map;
-  for (size_t i = 0; i < es.size(); i++) {
-    const auto &e = es[i];
-    centrality_map[make_pair(e.fst, e.snd)] = sc[i];
-  }
-  
-  for (const auto &c : centrality_map){
-    printf("%d\t%d\t%lf\n", c.fst.fst, c.fst.snd, c.snd);
+  spanning_centrality::SpanningCentrality spanning_centrality;
+  if (spanning_centrality.Construct(FLAGS_graph_file, FLAGS_num_samples)) {
+    for (size_t i = 0; i < spanning_centrality.GetNumEdges(); i++) {
+      double c = spanning_centrality.GetEdgeCentrality(i);
+      int u = spanning_centrality.GetEdge(i).first;
+      int v = spanning_centrality.GetEdge(i).second;
+      printf("%d\t%d\t%.3lf\n", u, v, c);
+    }
+  } else {
+    cerr << "Failed to estimate centrality values from some reason." << endl;
   }
   return 0;
 }

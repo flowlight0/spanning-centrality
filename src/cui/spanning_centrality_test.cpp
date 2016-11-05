@@ -153,7 +153,7 @@ TEST(SPANNING_VERTEX_CENTRALITY_AGGREGATED, TREE){
   const double tol = 0.01;
   vector<PI> es = {{0, 1}, {0, 2}, {0, 3}, {1, 4}};
   vector<double> ans = {3.0, 2.0, 1.0, 1.0, 1.0};
-  vector<double> sc = EstimateVertexAggregatedCentrality(es, 100000);
+  vector<double> sc = EstimateAggregatedCentrality(es, 100000);
 
   for (size_t i = 0; i < sc.size(); i++){
     ASSERT_NEAR(sc[i], ans[i], tol * 2) << sc << " " << ans << endl;
@@ -171,7 +171,7 @@ TEST(SPANNING_VERTEX_CENTRALITY_AGGREGATED, CLIQUE){
   }
   
   vector<double> ans(n, (n - 1) * 2.0 / n);
-  vector<double> sc = EstimateVertexAggregatedCentrality(es, 100000);
+  vector<double> sc = EstimateAggregatedCentrality(es, 100000);
 
   for (size_t i = 0; i < sc.size(); i++){
     ASSERT_NEAR(sc[i], ans[i], tol * 2) << sc << " " << ans << endl;
