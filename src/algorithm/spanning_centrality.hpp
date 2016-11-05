@@ -183,28 +183,22 @@ std::vector<double> EstimateVertexCentrality(const std::vector<PI> &es, int num_
     assert(e.fst != e.snd);
     V = std::max({V, e.fst + 1, e.snd + 1});
   }
-  
+
+  ArticulationPointDecomposition decomp(es);
   std::vector<double> centrality(V);
-  std::vector<std::vector<int> > edge_group = ArticulationPointDecomposition(es).edge_group;
+  std::vector<std::vector<int> > edge_group = decomp.edge_group;
+  std::vector<int> articulation_points = decomp.articulation_points;
 
   // std::cout << "ESTIMATE: " << std::endl;
 
-  std::unordered_set<int> usd;
-  
   REP(i, edge_group.size()) if (!edge_group[i].empty()){
-    for (int eid : edge_group[i]){ // checking correctness
-      assert (usd.count(es[eid].fst) == 0 && usd.count(es[eid].snd) == 0);
-    }
-    
-    // std::cout << "GROUP: "<< std::endl;
     std::vector<Edge> ccomp_es;
     for (int eid : edge_group[i]){
       ccomp_es.emplace_back(es[eid].fst, es[eid].snd, eid);
-      usd.insert(es[eid].fst);
-      usd.insert(es[eid].snd); 
     }
-    std::vector<std::vector<PI> > G(BuildCompressedGraph(ccomp_es));
-    std::vector<int>  order = DistanceOrdering(G);
+    
+    std::vector<std::vector<PI> > g(BuildCompressedGraph(ccomp_es));
+    std::vector<int>  order = DistanceOrdering(g);
     // 簡単のため全体の頂点数分の領域を確保している.二重連結成分が多いと効率が悪くなる.
     std::vector<bool> visit(V, false);
     std::vector<int>  next_edges(V, -1);
@@ -215,23 +209,30 @@ std::vector<double> EstimateVertexCentrality(const std::vector<PI> &es, int num_
       // std::cout << trial << "-th trial " << std::endl;
       fill(ALL(visit), false);
       fill(ALL(degree), 0);
-      SampleSpanningTree(next_edges, visit, G, order);
+      SampleSpanningTree(next_edges, visit, g, order);
       
-      REP2(s, 1, G.size()){
+      REP2(s, 1, g.size()){
         int v = order[s];
-        int e = ccomp_es[G[v][next_edges[v]].snd].id;
+        int e = ccomp_es[g[v][next_edges[v]].snd].id;
+        
         if (++degree[es[e].fst] == 2){
           centrality[es[e].fst] += 1.0 / num_samples;
-          assert(centrality[es[e].fst] < 1.001);
         }
 
         if (++degree[es[e].snd] == 2){
           centrality[es[e].snd] += 1.0 / num_samples;
-          assert(centrality[es[e].snd] < 1.001);
         }
       }
     }
     // std::cout << "FINISH_ITERATION" << std::endl;
+  }
+
+  for (int v : articulation_points) {
+    centrality[v] = 1.0;
+  }
+
+  for (int v = 0; v < V; v++) {
+    assert(centrality[v] < 1 + 1e-9);
   }
   // std::cout << "FINISH_ESTIMATION" << std::endl;
   // std::cout << centrality << std::endl;
@@ -253,16 +254,10 @@ std::vector<double> EstimateVertexAggregatedCentrality(const std::vector<PI> &es
   std::unordered_set<int> usd;
 
   REP(i, edge_group.size()) if (!edge_group[i].empty()){
-    for (int eid : edge_group[i]){ // checking correctness
-      assert (usd.count(es[eid].fst) == 0 && usd.count(es[eid].snd) == 0);
-    }
-
     // std::cout << "GROUP: "<< std::endl;
     std::vector<Edge> ccomp_es;
     for (int eid : edge_group[i]){
       ccomp_es.emplace_back(es[eid].fst, es[eid].snd, eid);
-      usd.insert(es[eid].fst);
-      usd.insert(es[eid].snd);
     }
     std::vector<std::vector<PI> > G(BuildCompressedGraph(ccomp_es));
     std::vector<int>  order = DistanceOrdering(G);
@@ -270,7 +265,7 @@ std::vector<double> EstimateVertexAggregatedCentrality(const std::vector<PI> &es
     std::vector<bool> visit(V, false);
     std::vector<int>  next_edges(V, -1);
     std::vector<int>  degree(V);
-
+    
     // std::cout << "START ITERATION: " << num_samples << std::endl;
     REP(trial, num_samples){
       // std::cout << trial << "-th trial " << std::endl;
@@ -281,8 +276,6 @@ std::vector<double> EstimateVertexAggregatedCentrality(const std::vector<PI> &es
       REP2(s, 1, G.size()){
         int v = order[s];
         int e = ccomp_es[G[v][next_edges[v]].snd].id;
-
-        // iwiwiwiwi: THE ONLY DIFFERENCE!
         centrality[es[e].fst] += 1.0 / num_samples;
         centrality[es[e].snd] += 1.0 / num_samples;
       }
