@@ -1,7 +1,7 @@
 #include "algorithm/spanning_centrality.hpp"
 #include "gtest/gtest.h"
+using namespace spanning_centrality;
 using namespace std;
-
 
 
 TEST(SPANNING_EDGE_CENTRALITY, SMALL0){

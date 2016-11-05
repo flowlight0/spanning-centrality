@@ -10,7 +10,7 @@ int main(int argc, char *argv[])
 {
   google::ParseCommandLineFlags(&argc, &argv, true);
   vector<PI> es(ReadGraph(FLAGS_graph_file));
-  vector<double> sc = EstimateVertexCentrality(es, FLAGS_num_samples);
+  vector<double> sc = spanning_centrality::EstimateVertexCentrality(es, FLAGS_num_samples);
   
   map<int, double> centrality_map;
   for (const auto &e : es){

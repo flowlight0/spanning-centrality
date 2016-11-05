@@ -23,9 +23,9 @@ namespace {
   void OutputLCCSize(const vector<vector<int>  > &edge_groups, const vector<PI> &es){
     size_t lcc_es = 0;
     size_t lcc_vs = 0;
-    for (const auto &eg : edge_groups){
+    for (const auto &edge_group : edge_groups){
       vector<PI> tmp_es;
-      for (int id : eg){
+      for (int id : edge_group){
         tmp_es.push_back(es[id]);
       }
 
@@ -68,7 +68,7 @@ int main(int argc, char *argv[])
     vector<double> elapsed_times;
     for (int q = 0; q < FLAGS_num_trials; q++) {
       double start = jlog_internal::get_current_time_sec();
-      EstimateEdgeCentrality(es, FLAGS_num_trees);
+      spanning_centrality::EstimateEdgeCentrality(es, FLAGS_num_trees);
       elapsed_times.push_back(jlog_internal::get_current_time_sec() - start);
       JLOG_ADD("sampling.elapsed_time", elapsed_times.back());
     }

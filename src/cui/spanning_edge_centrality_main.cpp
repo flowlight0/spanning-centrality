@@ -11,7 +11,7 @@ int main(int argc, char *argv[])
 {
   google::ParseCommandLineFlags(&argc, &argv, true);
   vector<PI> es(ReadGraph(FLAGS_graph_file));
-  vector<double> sc = EstimateEdgeCentrality(es, FLAGS_num_samples);
+  vector<double> sc = spanning_centrality::EstimateEdgeCentrality(es, FLAGS_num_samples);
   
   map<pair<int, int> , double> centrality_map;
   for (size_t i = 0; i < es.size(); i++) {
