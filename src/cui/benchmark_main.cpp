@@ -20,10 +20,10 @@ namespace {
     return vs.size();
   }
   
-  void OutputLCCSize(const vector<vector<int>  > &edge_group, const vector<PI> &es){
+  void OutputLCCSize(const vector<vector<int>  > &edge_groups, const vector<PI> &es){
     size_t lcc_es = 0;
     size_t lcc_vs = 0;
-    for (const auto &eg : edge_group){
+    for (const auto &eg : edge_groups){
       vector<PI> tmp_es;
       for (int id : eg){
         tmp_es.push_back(es[id]);
@@ -63,10 +63,10 @@ int main(int argc, char *argv[])
   
   JLOG_OPEN("results") JLOG_PUT_BENCHMARK("total_time"){
     ArticulationPointDecomposition decomp(es);
-    OutputLCCSize(decomp.edge_group, es);
+    OutputLCCSize(decomp.edge_groups, es);
 
     vector<double> elapsed_times;
-    REP(q, FLAGS_num_trials){
+    for (int q = 0; q < FLAGS_num_trials; q++) {
       double start = jlog_internal::get_current_time_sec();
       EstimateEdgeCentrality(es, FLAGS_num_trees);
       elapsed_times.push_back(jlog_internal::get_current_time_sec() - start);

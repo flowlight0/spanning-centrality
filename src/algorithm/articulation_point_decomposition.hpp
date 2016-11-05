@@ -33,11 +33,11 @@ class ArticulationPointDecomposition {
         }
       
         if (low[w] >= ord[v]){
-          edge_group.push_back(std::vector<int>());
+          edge_groups.push_back(std::vector<int>());
           while (true){
             int a, b, j;
             std::tie(a, b, j) = S.top(); S.pop();
-            edge_group.back().push_back(j);
+            edge_groups.back().push_back(j);
             if (v == a && w == b) break;
           }
         } 
@@ -49,7 +49,7 @@ class ArticulationPointDecomposition {
   
 public:
   std::vector<int> articulation_points;
-  std::vector<std::vector<int> > edge_group;
+  std::vector<std::vector<int> > edge_groups;
   
   ArticulationPointDecomposition(const std::vector<std::pair<int, int> > &es) {
     assert(es.size() < 1ull << 31);

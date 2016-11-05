@@ -14,7 +14,7 @@ int main(int argc, char *argv[])
   vector<double> sc = EstimateEdgeCentrality(es, FLAGS_num_samples);
   
   map<pair<int, int> , double> centrality_map;
-  REP(i, es.size()){
+  for (size_t i = 0; i < es.size(); i++) {
     const auto &e = es[i];
     centrality_map[make_pair(e.fst, e.snd)] = sc[i];
   }

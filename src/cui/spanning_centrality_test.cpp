@@ -10,7 +10,7 @@ TEST(SPANNING_EDGE_CENTRALITY, SMALL0){
   vector<double> ans = {1.00, 0.66, 0.66, 0.66, 1.00};
   vector<double> sc = EstimateEdgeCentrality(es, 10000);
 
-  REP(i, sc.size()){
+  for (size_t i = 0; i < sc.size(); i++) {
     ASSERT_NEAR(sc[i], ans[i], tol * 2);
   }
 }
@@ -20,7 +20,7 @@ TEST(SPANNING_EDGE_CENTRALITY, SMALL1){
   vector<PI> es = {{0, 1}, {1, 2}, {1, 3}, {2, 3}, {4, 5}};
   vector<double> ans = {1.00, 0.66, 0.66, 0.66, 1.00};
   vector<double> sc = EstimateEdgeCentrality(es, 10000);
-  REP(i, sc.size()){
+  for (size_t i = 0; i < sc.size(); i++) {
     ASSERT_NEAR(sc[i], ans[i], tol * 2);
   }
 }
@@ -31,7 +31,7 @@ TEST(SPANNING_EDGE_CENTRALITY, SMALL2){
   ConvertToUndirectedGraph(es);
   vector<double> ans = {1.00, 1.00, 1.00};
   vector<double> sc = EstimateEdgeCentrality(es, 10000);
-  REP(i, sc.size()){
+  for (size_t i = 0; i < sc.size(); i++) {
     ASSERT_NEAR(sc[i], ans[i], tol * 2);
   }
 }
@@ -42,8 +42,8 @@ TEST(SPANNING_VERTEX_CENTRALITY, SMALL0){
   vector<double> ans = {0.00, 1.00, 0.33, 1.00, 0.00};
   vector<double> sc = EstimateVertexCentrality(es, 10000);
   
-  REP(v, sc.size()){
-    ASSERT_NEAR(sc[v], ans[v], tol * 2) << sc << " " << ans << endl;
+  for (size_t i = 0; i < sc.size(); i++) {
+    ASSERT_NEAR(sc[i], ans[i], tol * 2) << sc << " " << ans << endl;
   }
 }
 
@@ -52,7 +52,7 @@ TEST(SPANNING_VERTEX_CENTRALITY, SMALL1){
   vector<PI> es = {{0, 1}, {1, 2}, {1, 3}, {2, 3}, {4, 5}};
   vector<double> ans = {0.00, 1.00, 0.33, 0.33, 0.00, 0.00};
   vector<double> sc = EstimateVertexCentrality(es, 10000);
-  REP(i, sc.size()){
+  for (size_t i = 0; i < sc.size(); i++) {
     ASSERT_NEAR(sc[i], ans[i], tol * 2) << sc << " " << ans << endl;
   }
 }
@@ -155,8 +155,8 @@ TEST(SPANNING_VERTEX_CENTRALITY_AGGREGATED, TREE){
   vector<double> ans = {3.0, 2.0, 1.0, 1.0, 1.0};
   vector<double> sc = EstimateVertexAggregatedCentrality(es, 100000);
 
-  REP(v, sc.size()){
-    ASSERT_NEAR(sc[v], ans[v], tol * 2) << sc << " " << ans << endl;
+  for (size_t i = 0; i < sc.size(); i++){
+    ASSERT_NEAR(sc[i], ans[i], tol * 2) << sc << " " << ans << endl;
   }
 }
 
@@ -164,11 +164,16 @@ TEST(SPANNING_VERTEX_CENTRALITY_AGGREGATED, CLIQUE){
   const double tol = 0.01;
   const int n = 20;
   vector<PI> es;
-  REP (v, n) REP (u, v) es.emplace_back(u, v);
+  for (int v = 0; v < n; v++) {
+    for (int u = 0; u < v; u++) {
+      es.emplace_back(u, v);
+    }
+  }
+  
   vector<double> ans(n, (n - 1) * 2.0 / n);
   vector<double> sc = EstimateVertexAggregatedCentrality(es, 100000);
 
-  REP(v, sc.size()){
-    ASSERT_NEAR(sc[v], ans[v], tol * 2) << sc << " " << ans << endl;
+  for (size_t i = 0; i < sc.size(); i++){
+    ASSERT_NEAR(sc[i], ans[i], tol * 2) << sc << " " << ans << endl;
   }
 }
