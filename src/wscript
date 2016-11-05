@@ -1,0 +1,38 @@
+# -*- python -*-
+
+srcdir= '.'
+blddir= '../bin'
+
+
+def build(bld):
+    my_includes = ['.', '../lib']
+    my_libraries = ['algorithm', 'jlog', 'gflags', 'gtest', 'pthread']
+
+    bld.program(
+        source  = 'cui/benchmark_main.cpp',
+        target  = '../benchmark',
+        includes = my_includes,
+        use     = my_libraries)
+
+    bld.program(
+        source  = 'cui/spanning_edge_centrality_main.cpp',
+        target  = '../spanning_edge_centrality',
+        includes = my_includes,
+        use     = my_libraries)
+
+    bld.program(
+        source  = 'cui/spanning_vertex_centrality_main.cpp',
+        target  = '../spanning_vertex_centrality',
+        includes = my_includes,
+        use     = my_libraries)
+
+    bld.program(
+        features = 'cxx test',
+        source  = 'cui/spanning_centrality_test.cpp',
+        target  = '../spanning_centrality_test',
+        includes = my_includes,
+        use     = my_libraries)
+
+    from waflib.Tools import waf_unit_test
+    bld.add_post_fun(waf_unit_test.summary)
+    
