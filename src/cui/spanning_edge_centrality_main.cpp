@@ -10,7 +10,8 @@ DEFINE_int32(num_samples, 1000, "");
 int main(int argc, char *argv[])
 {
   google::ParseCommandLineFlags(&argc, &argv, true);
-  vector<PI> es(ReadGraph(FLAGS_graph_file));
+  vector<PI> es;
+  ReadGraph(FLAGS_graph_file, es);
   vector<double> sc = spanning_centrality::EstimateEdgeCentrality(es, FLAGS_num_samples);
   
   map<pair<int, int> , double> centrality_map;

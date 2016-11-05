@@ -50,7 +50,8 @@ int main(int argc, char *argv[])
   google::ParseCommandLineFlags(&argc, &argv, true);
 
   int V = 0;
-  vector<PI> es(ReadGraph(FLAGS_graph_file));
+  vector<PI> es;
+  ReadGraph(FLAGS_graph_file, es);
   ConvertToUndirectedGraph(es);
   for (const auto &e : es){
     V = max(V, max(e.fst, e.snd) + 1);

@@ -30,20 +30,20 @@ template <typename T> std::ostream &operator<<(std::ostream &out, const std::vec
 }
 
 
-std::vector<PI> ReadGraph(const std::string &graph_file){
-  std::vector<PI> es;
+bool ReadGraph(const std::string &graph_file, std::vector<PI> &es){
+  es.clear();
   
   std::ifstream ifs(graph_file);
   if (!ifs.good()){
     std::cerr << "Error: open graph_file." << std::endl;
-    exit(EXIT_FAILURE);
+    return false;
   }
     
   for (int u, v; ifs >> u >> v;) {
     if (u != v) es.emplace_back(u, v);
   }
   ifs.close();
-  return es;
+  return true;
 }
 
 
