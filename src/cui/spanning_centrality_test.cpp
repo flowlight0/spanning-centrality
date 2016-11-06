@@ -4,9 +4,26 @@ using namespace spanning_centrality;
 using namespace std;
 
 
+template <typename S, typename T> std::ostream &operator<<(std::ostream &out, const std::pair<S, T> &p) {
+  out << "(" << p.first << ", " << p.second << ")";
+  return out;
+}
+
+
+template <typename T> std::ostream &operator<<(std::ostream &out, const std::vector<T> &v) {
+  out << "[";
+  for (size_t i = 0; i < v.size(); i++) {
+    if (i > 0) out << ", ";
+    out << v[i];
+  }
+  out << "]";
+  return out;
+}
+
+
 TEST(SPANNING_EDGE_CENTRALITY, SMALL0){
   const double tol = 0.01;
-  vector<PI> es = {{0, 1}, {1, 2}, {1, 3}, {2, 3}, {3, 4}};
+  vector<pair_int> es = {{0, 1}, {1, 2}, {1, 3}, {2, 3}, {3, 4}};
   vector<double> ans = {1.00, 0.66, 0.66, 0.66, 1.00};
   vector<double> sc = EstimateEdgeCentrality(es, 10000);
 
@@ -17,7 +34,7 @@ TEST(SPANNING_EDGE_CENTRALITY, SMALL0){
 
 TEST(SPANNING_EDGE_CENTRALITY, SMALL1){
   const double tol = 0.01;  
-  vector<PI> es = {{0, 1}, {1, 2}, {1, 3}, {2, 3}, {4, 5}};
+  vector<pair_int> es = {{0, 1}, {1, 2}, {1, 3}, {2, 3}, {4, 5}};
   vector<double> ans = {1.00, 0.66, 0.66, 0.66, 1.00};
   vector<double> sc = EstimateEdgeCentrality(es, 10000);
   for (size_t i = 0; i < sc.size(); i++) {
@@ -27,8 +44,7 @@ TEST(SPANNING_EDGE_CENTRALITY, SMALL1){
 
 TEST(SPANNING_EDGE_CENTRALITY, SMALL2){
   const double tol = 0.01;
-  vector<PI> es = {{0, 1}, {0, 2}, {2, 3}};
-  ConvertToUndirectedGraph(es);
+  vector<pair_int> es = {{0, 1}, {0, 2}, {2, 3}};
   vector<double> ans = {1.00, 1.00, 1.00};
   vector<double> sc = EstimateEdgeCentrality(es, 10000);
   for (size_t i = 0; i < sc.size(); i++) {
@@ -38,7 +54,7 @@ TEST(SPANNING_EDGE_CENTRALITY, SMALL2){
 
 TEST(SPANNING_VERTEX_CENTRALITY, SMALL0){
   const double tol = 0.01;
-  vector<PI> es = {{0, 1}, {1, 2}, {1, 3}, {2, 3}, {3, 4}};
+  vector<pair_int> es = {{0, 1}, {1, 2}, {1, 3}, {2, 3}, {3, 4}};
   vector<double> ans = {0.00, 1.00, 0.33, 1.00, 0.00};
   vector<double> sc = EstimateVertexCentrality(es, 10000);
   
@@ -49,7 +65,7 @@ TEST(SPANNING_VERTEX_CENTRALITY, SMALL0){
 
 TEST(SPANNING_VERTEX_CENTRALITY, SMALL1){
   const double tol = 0.01;  
-  vector<PI> es = {{0, 1}, {1, 2}, {1, 3}, {2, 3}, {4, 5}};
+  vector<pair_int> es = {{0, 1}, {1, 2}, {1, 3}, {2, 3}, {4, 5}};
   vector<double> ans = {0.00, 1.00, 0.33, 0.33, 0.00, 0.00};
   vector<double> sc = EstimateVertexCentrality(es, 10000);
   for (size_t i = 0; i < sc.size(); i++) {
@@ -58,7 +74,7 @@ TEST(SPANNING_VERTEX_CENTRALITY, SMALL1){
 }
 
 TEST(SPANNING_EDGE_CENTRALITY, KARATE_CLUB){
-  vector<PI> es = {
+  vector<pair_int> es = {
     {1 , 2 }, 
     {1 , 3 },
     {2 , 3 },  
@@ -139,19 +155,19 @@ TEST(SPANNING_EDGE_CENTRALITY, KARATE_CLUB){
     {33, 34}
   };
 
-  ConvertToUndirectedGraph(es);
+  spanning_centrality::internal::ConvertToUndirectedGraph(es);
   vector<double> sc = EstimateEdgeCentrality(es, 10000);
   
   for (size_t i = 0; i < es.size(); i++){
-    ASSERT_LT(sc[i], 1.001) << es[i].fst << '\t' << es[i].snd << '\t' << sc[i] << endl;
-    cout << es[i].fst << '\t' << es[i].snd << '\t' << sc[i] << endl;
+    ASSERT_LT(sc[i], 1.001) << es[i].first << '\t' << es[i].second << '\t' << sc[i] << endl;
+    cout << es[i].first << '\t' << es[i].second << '\t' << sc[i] << endl;
   }
 }
 
 
 TEST(SPANNING_VERTEX_CENTRALITY_AGGREGATED, TREE){
   const double tol = 0.01;
-  vector<PI> es = {{0, 1}, {0, 2}, {0, 3}, {1, 4}};
+  vector<pair_int> es = {{0, 1}, {0, 2}, {0, 3}, {1, 4}};
   vector<double> ans = {3.0, 2.0, 1.0, 1.0, 1.0};
   vector<double> sc = EstimateAggregatedCentrality(es, 100000);
 
@@ -163,7 +179,7 @@ TEST(SPANNING_VERTEX_CENTRALITY_AGGREGATED, TREE){
 TEST(SPANNING_VERTEX_CENTRALITY_AGGREGATED, CLIQUE){
   const double tol = 0.01;
   const int n = 20;
-  vector<PI> es;
+  vector<pair_int> es;
   for (int v = 0; v < n; v++) {
     for (int u = 0; u < v; u++) {
       es.emplace_back(u, v);

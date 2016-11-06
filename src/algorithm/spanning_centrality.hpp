@@ -1,29 +1,34 @@
 #ifndef SPANNING_CENTRALITY_H
 #define SPANNING_CENTRALITY_H
 
-#include "common.hpp"
 #include "articulation_point_decomposition.hpp"
+// #include "common.hpp"
 #include <unordered_map>
 #include <unordered_set>
+#include <algorithm>
+#include <iostream>
 #include <fstream>
+#include <cstdint>
 #include <cassert>
 #include <random>
 #include <queue>
 
 namespace spanning_centrality {
+  typedef std::pair<int, int> pair_int;
   
-  namespace {
+  namespace internal {
     
     struct Edge {
       int src;
       int dst;
       size_t edge_id;
       double centrality;
-      Edge(int src_, int dst_, size_t edge_id_) : src(src_), dst(dst_), edge_id(edge_id_), centrality(0) {}
+      Edge(int src_, int dst_, size_t edge_id_)
+        : src(src_), dst(dst_), edge_id(edge_id_), centrality(0) {}
     };
     
     
-    std::vector<std::vector<PI> > BuildCompressedGraph(std::vector<Edge> &es){
+    std::vector<std::vector<pair_int> > BuildCompressedGraph(std::vector<internal::Edge> &es){
       size_t V = 0;
       std::unordered_map<int, int> vertex2id;
       for (auto &e : es){
@@ -33,7 +38,7 @@ namespace spanning_centrality {
         e.dst = vertex2id[e.dst];
       }
 
-      std::vector<std::vector<PI> > g(V);
+      std::vector<std::vector<pair_int> > g(V);
       for (size_t i = 0; i < es.size(); i++){
         g[es[i].src].emplace_back(es[i].dst, i);
         g[es[i].dst].emplace_back(es[i].src, i);
@@ -41,8 +46,42 @@ namespace spanning_centrality {
       return g;
     }
 
+    
+    bool ReadGraph(const std::string &graph_file, std::vector<pair_int> &es){
+      es.clear();
+  
+      std::ifstream ifs(graph_file);
+      if (!ifs.good()){
+        std::cerr << "Error: open graph_file." << std::endl;
+        return false;
+      }
+    
+      for (int u, v; ifs >> u >> v;) {
+        if (u != v) es.emplace_back(u, v);
+      }
+      ifs.close();
+      return true;
+    }
 
-    std::vector<int> DistanceOrdering(const std::vector<std::vector<PI> > &g){
+
+    void ConvertToUndirectedGraph(std::vector<pair_int> &es){
+      // remove self loop.
+      size_t m = 0;
+      for (size_t i = 0; i < es.size(); i++){
+        if (es[i].first != es[i].second) es[m++] = es[i];
+      }
+      es.resize(m);
+    
+      // remove redundant edges.
+      for (auto &e : es){
+        if (e.first > e.second) std::swap(e.first, e.second);
+      }
+      std::sort(es.begin(), es.end());
+      es.erase(unique(es.begin(), es.end()), es.end());
+    }
+    
+
+    std::vector<int> DistanceOrdering(const std::vector<std::vector<pair_int> > &g){
       int root = 0;
       for (size_t v = 0; v < g.size(); v++) {
         if (g[v].size() > g[root].size()) root = v;
@@ -55,7 +94,7 @@ namespace spanning_centrality {
       while (!que.empty()){
         int v = que.front(); que.pop();
         for (const auto &p : g[v]){
-          int w = p.fst;
+          int w = p.first;
           if (dist[w] > dist[v] + 1){
             dist[w] = dist[v] + 1;
             que.push(w);
@@ -63,14 +102,14 @@ namespace spanning_centrality {
         }
       }
     
-      std::vector<PI> order;
+      std::vector<pair_int> order;
       for (size_t v = 0; v < g.size(); v++) {
         order.push_back(std::make_pair(dist[v], v));
       }
       std::sort(order.begin(), order.end());
       std::vector<int> res;
       for (size_t v = 0; v < g.size(); v++) {
-        res.push_back(order[v].snd);
+        res.push_back(order[v].second);
       }
       assert(res[0] == root);
       return res;
@@ -119,8 +158,8 @@ namespace spanning_centrality {
 
     bool Construct(const std::string &graph_file, int num_samples) {
       std::vector<std::pair<int, int> > es;
-      if (ReadGraph(graph_file, es)) {
-        ConvertToUndirectedGraph(es);
+      if (internal::ReadGraph(graph_file, es)) {
+        internal::ConvertToUndirectedGraph(es);
         return Construct(es, num_samples);
       } else {
         return false;
@@ -132,8 +171,8 @@ namespace spanning_centrality {
       
       int V = 0;
       for (const auto &e : es){
-        assert(e.fst != e.snd);
-        V = std::max({V, e.fst + 1, e.snd + 1});
+        assert(e.first != e.second);
+        V = std::max({V, e.first + 1, e.second + 1});
       }
         
       this->edge_centrality = std::vector<double>(es.size());
@@ -149,16 +188,16 @@ namespace spanning_centrality {
         if (edge_group.empty()) continue;
 
         // build a subgraph from an edge group and shuffle vertices on distances.
-        std::vector<Edge> ccomp_es;
+        std::vector<internal::Edge> ccomp_es;
         for (int edge_id : edge_group){
-          ccomp_es.emplace_back(es[edge_id].fst, es[edge_id].snd, edge_id);
+          ccomp_es.emplace_back(es[edge_id].first, es[edge_id].second, edge_id);
         }
-        std::vector<std::vector<PI> > g(BuildCompressedGraph(ccomp_es));
-        std::vector<int>  order = DistanceOrdering(g);
+        std::vector<std::vector<pair_int> > g(BuildCompressedGraph(ccomp_es));
+        std::vector<int>  order = internal::DistanceOrdering(g);
         
 
         // 簡単のため全体の頂点数分の領域を確保している.二重連結成分が多いと効率が悪くなる.
-        std::vector<bool> visit(V, false);
+        std::vector<int8_t> visit(V, false);
         std::vector<int>  next_edges(V, -1);
         std::vector<int>  degree(V);
     
@@ -170,19 +209,19 @@ namespace spanning_centrality {
             
           for (size_t s = 1; s < g.size(); s++) {
             int v = order[s];
-            int e = ccomp_es[g[v][next_edges[v]].snd].edge_id;
+            int e = ccomp_es[g[v][next_edges[v]].second].edge_id;
 
             this->edge_centrality[e]+= 1.0 / num_samples;
 
-            if (++degree[es[e].fst] == 2){
-              this->vertex_centrality[es[e].fst] += 1.0 / num_samples;
+            if (++degree[es[e].first] == 2){
+              this->vertex_centrality[es[e].first] += 1.0 / num_samples;
             }
-            if (++degree[es[e].snd] == 2){
-              this->vertex_centrality[es[e].snd] += 1.0 / num_samples;
+            if (++degree[es[e].second] == 2){
+              this->vertex_centrality[es[e].second] += 1.0 / num_samples;
             }
             
-            this->aggregated_centrality[es[e].fst] += 1.0 / num_samples;
-            this->aggregated_centrality[es[e].snd] += 1.0 / num_samples;
+            this->aggregated_centrality[es[e].first] += 1.0 / num_samples;
+            this->aggregated_centrality[es[e].second] += 1.0 / num_samples;
           }
         }
       }
@@ -199,8 +238,8 @@ namespace spanning_centrality {
 
   private:
     void SampleSpanningTree(std::vector<int > &next_edges,
-                            std::vector<bool> &visit,
-                            const std::vector<std::vector<PI> > &g,
+                            std::vector<int8_t> &visit,
+                            const std::vector<std::vector<pair_int> > &g,
                             const std::vector<int> &order)
     {
       visit[order[0]] = true;
@@ -212,13 +251,13 @@ namespace spanning_centrality {
         while (!visit[u]){
           int next = mt() % g[u].size();
           next_edges[u] = next;
-          u = g[u][next].fst;
+          u = g[u][next].first;
         }
         
         u = order[s];
         while (!visit[u]){
           visit[u] = true;
-          u = g[u][next_edges[u]].fst;
+          u = g[u][next_edges[u]].first;
         }
       }
     }
@@ -226,7 +265,7 @@ namespace spanning_centrality {
   
   
   
-  std::vector<double> EstimateEdgeCentrality(const std::vector<PI> &es, int num_samples){
+  std::vector<double> EstimateEdgeCentrality(const std::vector<pair_int> &es, int num_samples){
     SpanningCentrality spanning_centrality;
     spanning_centrality.Construct(es, num_samples);
 
@@ -239,7 +278,7 @@ namespace spanning_centrality {
   }
   
   
-  std::vector<double> EstimateVertexCentrality(const std::vector<PI> &es, int num_samples){
+  std::vector<double> EstimateVertexCentrality(const std::vector<pair_int> &es, int num_samples){
     SpanningCentrality spanning_centrality;
     spanning_centrality.Construct(es, num_samples);
 
@@ -252,7 +291,7 @@ namespace spanning_centrality {
   }
   
 
-  std::vector<double> EstimateAggregatedCentrality(const std::vector<PI> &es, int num_samples){
+  std::vector<double> EstimateAggregatedCentrality(const std::vector<pair_int> &es, int num_samples){
     SpanningCentrality spanning_centrality;
     spanning_centrality.Construct(es, num_samples);
 

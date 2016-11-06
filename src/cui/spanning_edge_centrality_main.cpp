@@ -1,5 +1,4 @@
 #include "algorithm/spanning_centrality.hpp"
-#include "common.hpp"
 #include "gflags/gflags.h"
 #include <cstdio>
 #include <map>
