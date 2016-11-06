@@ -2,7 +2,6 @@
 #define SPANNING_CENTRALITY_H
 
 #include "articulation_point_decomposition.hpp"
-// #include "common.hpp"
 #include <unordered_map>
 #include <unordered_set>
 #include <algorithm>
@@ -264,7 +263,7 @@ namespace spanning_centrality {
   };
   
   
-  
+  // helper functions
   std::vector<double> EstimateEdgeCentrality(const std::vector<pair_int> &es, int num_samples){
     SpanningCentrality spanning_centrality;
     spanning_centrality.Construct(es, num_samples);

@@ -1,4 +1,3 @@
-// #include "common.hpp"
 #include "algorithm/articulation_point_decomposition.hpp"
 #include "algorithm/spanning_centrality.hpp"
 #include "gflags/gflags.h"
@@ -78,4 +77,3 @@ int main(int argc, char *argv[])
 
   return 0;
 }
-
